@@ -1,0 +1,55 @@
+%Properties()
+{
+    UI_SheenHeader("# Sheen Settings", Int) = 1
+    // UI_SheenDocs("[This shader has documentation](https://shaders.orels.sh/docs/ui/sheen)", Int) = 0
+    _SheenStrength("Sheen Strength", Range(-3,3)) = 1
+    _SheenPower("Sheen Focus", Float) = 2
+    [HDR]_SheenTint("Sheen Tint", Color) = (1,1,1,1)
+    _SheenAlbedoTint("Albedo Tint", Range(0,1)) = 1
+    [Enum(Overlay, 0, Lighten, 1, Screen, 2, Multiply, 3)]_SheenBlendType("Blending Type", Int) = 0
+    UI_SheenBlendTypeNote("> The blend types match the ones provided by Photoshop", Int) = 0
+    _SheenMask("Sheen Mask", 2D) = "white" {}
+}
+
+%Includes()
+{
+    "self"
+}
+
+%Textures()
+{
+    TEXTURE2D(_SheenMask);
+    SAMPLER(sampler_SheenMask);
+}
+
+%Variables()
+{
+    half _SheenStrength;
+    half _SheenPower;
+    half4 _SheenTint;
+    half _SheenAlbedoTint;
+    int _SheenBlendType;
+    half4 _SheenMask_ST;
+}
+
+%Fragment("Toon_SheenFragment", 10)
+{
+    void Toon_SheenFragment(MeshData d, inout SurfaceData o) {
+        half sheenMask = _SheenMask.SampleLevel(sampler_SheenMask, TRANSFORM_TEX(d.uv0, _SheenMask), 0).r;
+        if (sheenMask < 0.5) return;
+
+        half NoV = saturate(dot(d.worldNormal, d.worldSpaceViewDir));
+        NoV = saturate(pow(NoV, _SheenPower));
+        half3 blendSource = lerp(_SheenTint, o.Albedo, _SheenAlbedoTint);
+        half3 blended = blendSource;
+        switch (_SheenBlendType)
+        {
+            case 0: blended = BlendOverlay(o.Albedo, blendSource * NoV); break;
+            case 1: blended = BlendLighten(o.Albedo, blendSource * NoV); break;
+            case 2: blended = BlendScreen(o.Albedo, blendSource * NoV); break;
+            case 3: blended = o.Albedo * blendSource * NoV; break;
+        }
+        o.Albedo = lerp(o.Albedo, blended, _SheenStrength);
+        
+    }
+}

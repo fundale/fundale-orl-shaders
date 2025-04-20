@@ -1,0 +1,128 @@
+%Properties()
+{
+    UI_Video_Header("# Video", Int) = 1
+    [Toggle(_VIDEO)]_EnableVideo("Enable Video", Int) = 0
+    [Toggle(_VIDEOAST)]_ApplyVideoTransform("Apply Video Transform %ShowIf(_EnableVideo)", Int) = 1
+    [HDR]_VideoTint("Video Tint %ShowIf(_EnableVideo)", Color) = (1.0, 1.0, 1.0, 1.0)
+    [Toggle(_VIDEOALBEDO)]_VideoAsAlbedo("Video As Albedo %ShowIf(_EnableVideo)", Int) = 0
+    _VideoMask("Video Mask %ShowIf(_EnableVideo)", 2D) = "white" {}
+    _VideoFallback("Video Fallback > %ShowIf(_EnableVideo)", 2D) = "black" {}
+
+    [Toggle(_VIDEOMAP)]_UseVideoMap("Use Video UV Map %ShowIf(_EnableVideo)", Int) = 0
+    _VideoMap("Video UV Map > %ShowIf(_EnableVideo && _UseVideoMap)", 2D) = "black" {}
+
+    _VideoRatio("Video Ratio %ShowIf(_EnableVideo && !_UseVideoMap)", Float) = 1.777777
+    _VideoRotation("Video Rotation %ShowIf(_EnableVideo && !_UseVideoMap)", Range(-360, 360)) = 0
+}
+
+%ShaderFeatures()
+{
+    #pragma shader_feature _VIDEO
+    #pragma shader_feature _VIDEOMAP
+    #pragma shader_feature _VIDEOAST
+    #pragma shader_feature _VIDEOALBEDO
+}
+
+%Textures()
+{
+    #ifndef _UDON_VIDEOTEX
+        #define _UDON_VIDEOTEX
+        TEXTURE2D(_Udon_VideoTex);
+    #endif
+    TEXTURE2D(_VideoMask);
+    TEXTURE2D(_VideoFallback);
+    #if defined(_VIDEOMAP)
+        TEXTURE2D(_VideoMap);
+    #endif
+
+    #ifndef BILINEAR_CLAMP
+        #define BILINEAR_CLAMP
+        SAMPLER(bilinear_clamp);
+    #endif
+}
+
+%Variables()
+{
+    #if defined(_VIDEO)
+        uniform int _EnableVideo;
+    #endif
+
+    #ifndef _UDON_VIDEOTEX_ST
+        #define _UDON_VIDEOTEX_ST
+        uniform float4 _Udon_VideoTex_ST;
+    #endif
+
+    #ifndef _UDON_VIDEOTEX_TEXELSIZE
+        #define _UDON_VIDEOTEX_TEXELSIZE
+        uniform float4 _Udon_VideoTex_TexelSize;
+    #endif
+
+    uniform fixed4 _VideoTint;
+    uniform float4 _VideoMask_ST;
+    
+    #if !defined(_VIDEOMAP)
+        uniform fixed _VideoRatio;
+        uniform fixed _VideoRotation;
+    #endif
+}
+
+%Fragment("VideoFrag")
+{
+    #if !defined(ROTATE)
+    #define ROTATE
+        float2 rotate(float2 uv, float deg) {
+            deg *= 0.0174533;
+            float2 rotsinc = float2(sin(deg), cos(deg));
+            return mul(uv, float2x2(rotsinc.y, -rotsinc.x, rotsinc.x, rotsinc.y));
+        }
+    #endif
+
+    #ifndef ISVIDEOAVAILABLE
+        #define ISVIDEOAVAILABLE
+        bool IsVideoAvailable()
+        {
+            return _Udon_VideoTex_TexelSize.z > 16;
+        }
+    #endif
+
+    void VideoFrag(MeshData d, inout SurfaceData o) {
+
+        #if defined(_VIDEO)
+            if (!_EnableVideo) return;
+
+            float2 videouv = TRANSFORM_TEX(d.uv0, _VideoMask);
+            fixed4 video = 0.0;
+
+            #if defined(_VIDEOMAP)
+                half mask = _VideoMask.Sample(bilinear_clamp, videouv);
+                videouv = _VideoMap.SampleLevel(bilinear_clamp, videouv, 0).rg;
+            #else           
+                videouv -= 0.5;
+                videouv = rotate(videouv, _VideoRotation);
+                videouv.y *= _VideoRatio;
+                videouv += 0.5;
+                half mask = _VideoMask.Sample(bilinear_clamp, videouv);
+            #endif
+
+            
+
+            if (videouv.x > 0.0 && videouv.x < 1.0 && videouv.y > 0.0 && videouv.y < 1.0 && mask > 0.01)
+            {
+                if (IsVideoAvailable())
+                {
+                    #if defined(_VIDEOAST)
+                        videouv = TRANSFORM_TEX(videouv, _Udon_VideoTex);
+                    #endif
+                    video.rgb = _Udon_VideoTex.SampleLevel(bilinear_clamp, videouv, 0);
+                } else video.rgb = _VideoFallback.SampleLevel(bilinear_clamp, videouv, 0);
+
+                fixed3 videocolor = video.rgb * mask * _VideoTint.rgb;
+                #if defined(_VIDEOALBEDO)
+                    o.Albedo.rgb = lerp(o.Albedo.rgb, videocolor, _VideoTint.a);
+                #else
+                    o.Emission += videocolor;
+                #endif
+            }
+        #endif
+    }
+}

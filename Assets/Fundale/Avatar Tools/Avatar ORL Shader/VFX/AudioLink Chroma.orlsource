@@ -1,0 +1,279 @@
+%Properties()
+{
+    UI_AudioLink_Chroma_Header("# AudioLink Chroma", Int) = 1
+    [Toggle(_AUDIOLINKCHROMA)]_EnableAudioLinkChroma("Enable AudioLink Chroma" , Int) = 0
+    [HDR]_ChromaTint("Chroma Tint %ShowIf(_EnableAudioLinkChroma)", Color) = (1.0, 1.0, 1.0, 1.0)
+    _ChromaMask("Chroma Mask %ShowIf(_EnableAudioLinkChroma)", 2D) = "white" {}
+    [Toggle(_CHROMAMAP)]_UseChromaMap("Use Chroma Map %ShowIf(_EnableAudioLinkChroma)", Int) = 0
+    _ChromaMap("Chroma Map > %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", 2D) = "black" {}
+    [Enum(Bass,0,Low Mid,1,High Mid,2,Treble,3)]_ChromaBand("Chroma Band %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Int) = 0
+    _ChromaRotation("Chroma Rotation %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Range(-360, 360)) = 0
+    [Toggle]_ChromaForceIdle("Force Chroma Idle %ShowIf(_EnableAudioLinkChroma)", Int) = 0
+    [IntRange]_ChromaModeR("Chroma Mode R %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
+    [IntRange]_ChromaModeG("Chroma Mode G %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
+    [IntRange]_ChromaModeB("Chroma Mode B %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
+    _ChromaHistory("Chroma History %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 128.0)) = 32.0
+    _ChromaWarp("Chroma Warp %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 2.0)) = 1.0
+    _ChromaSpeed("Chroma Speed %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 10.0)) = 1.0
+    _ChromaBiased("Chroma Color Bias %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 1.0)) = 0.0
+    [Toggle]_ChromaForceTheme("Force Chroma Theme %ShowIf(_EnableAudioLinkChroma)", Int) = 0
+    _ChromaTheme0("Chroma Theme 0 %ShowIf(_EnableAudioLinkChroma)", Color) = (1.0, 0.0, 0.0, 1.0)
+    _ChromaTheme1("Chroma Theme 1 %ShowIf(_EnableAudioLinkChroma)", Color) = (1.0, 1.0, 0.0, 1.0)
+    _ChromaTheme2("Chroma Theme 2 %ShowIf(_EnableAudioLinkChroma)", Color) = (0.0, 1.0, 0.0, 1.0)
+    _ChromaTheme3("Chroma Theme 3 %ShowIf(_EnableAudioLinkChroma)", Color) = (0.0, 0.0, 1.0, 1.0)
+}
+
+%ShaderDefines()
+{
+    #ifndef LUMACONFIG
+        #define LUMACONFIG
+        
+        #define LUMA_START 63
+        #define LUMA_POWER 7
+
+        #if defined(_LUMALEGACY)
+            #define LUMA_LEGACY_WIDTH 1920.0
+            #define LUMA_LEGACY_HEIGHT 1080.0
+            #define LUMA_LEGACY_SIZE fixed2(LUMA_LEGACY_WIDTH, LUMA_LEGACY_HEIGHT)
+
+            #define LUMA_LEGACY_LENGTH 200.0
+            #define LUMA_LEGACY_Y 533.0 // 547.0
+
+            #define LUMA_LEGACY_POWER_POSITION fixed2(1205.0, 553.0) //527.0 //fixed2(0.629, 0.511)
+            #define LUMA_LEGACY_THEME_POSITION fixed2(1645.0, 566.0) // 514.0
+            #define LUMA_LEGACY_THEME_SIZE 15.0
+
+            #define LUMA_LEGACY_GRAD_START1 1097.0 - 1.0
+            #define LUMA_LEGACY_GRAD_START2 1309.0 - 1.0
+            #define LUMA_LEGACY_GRAD_START3 1522.0
+        #endif
+    #endif
+}
+
+%ShaderFeatures()
+{
+    #pragma shader_feature _AUDIOLINKCHROMA
+    #pragma shader_feature _CHROMAMAP
+}
+
+%Textures()
+{
+    TEXTURE2D(_ChromaMask);
+    #if defined(_CHROMAMAP)
+        TEXTURE2D(_ChromaMap);
+    #endif
+
+    #ifndef STORED
+        #define STORED
+
+        #if defined(_LUMALEGACY)
+            TEXTURE2D(_Stored);
+        #endif
+    #endif
+
+    #ifndef BILINEAR_CLAMP
+        #define BILINEAR_CLAMP
+        SAMPLER(bilinear_clamp);
+    #endif
+}
+
+%Variables()
+{
+    #if defined(_AUDIOLINKCHROMA)
+        uniform int _EnableAudioLinkChroma;
+    #endif
+
+    uniform float4 _ChromaMask_ST;
+
+    uniform fixed4 _ChromaTint;
+    uniform int _ChromaForceIdle;
+
+    uniform int _ChromaModeR;
+    uniform int _ChromaModeG;
+    uniform int _ChromaModeB;
+
+    uniform fixed _ChromaHistory;
+    
+    uniform half _ChromaWarp;
+    uniform half _ChromaSpeed;
+    uniform half _ChromaBiased;
+
+    uniform int _ChromaForceTheme;
+
+    uniform fixed4 _ChromaTheme0;
+    uniform fixed4 _ChromaTheme1;
+    uniform fixed4 _ChromaTheme2;
+    uniform fixed4 _ChromaTheme3;
+
+    #ifndef REACTPRIORITY
+        #define REACTPRIORITY
+        uniform int _ReactPriority;
+    #endif
+
+    #if !defined(_CHROMAMAP)
+        uniform int _ChromaBand;
+        uniform fixed _ChromaRotation;
+    #endif
+}
+
+%Fragment("ChromaFrag")
+{
+    #ifndef LUMACHECKS
+        #define LUMACHECKS
+        bool IsLumaLegacyAvailable()
+        {
+            #if defined(_LUMALEGACY)
+                return _Stored_TexelSize.z > 16 && all(_Stored.SampleLevel(point_clamp, LUMA_LEGACY_POWER_POSITION / LUMA_LEGACY_SIZE, 0).rgb == fixed3(1.0, 0.0, 0.0));
+            #else
+                return false;
+            #endif
+        }
+
+        bool IsLumaAvailable()
+        {
+            if (AudioLinkIsAvailable()) return AudioLinkData(int2(0, LUMA_START - LUMA_POWER)).r > 0.5;
+            return false;
+        }
+    #endif
+
+    #if !defined(ROTATE)
+        #define ROTATE
+        float2 rotate(float2 uv, float deg) {
+            deg *= 0.0174533;
+            float2 rotsinc = float2(sin(deg), cos(deg));
+            return mul(uv, float2x2(rotsinc.y, -rotsinc.x, rotsinc.x, rotsinc.y));
+        }
+    #endif
+
+    bool ShouldReact() { return AudioLinkIsAvailable() && !_ChromaForceIdle; }
+
+    float ChronoTime(int band)
+    {
+        if (ShouldReact()) return AudioLinkGetChronoTime(0, band);
+        return _Time.x;
+    }
+
+    fixed3 ThemeColor(int theme)
+    {
+        theme %= 4;
+        if (ShouldReact() && !_ChromaForceTheme)
+        {
+            return AudioLinkData(ALPASS_THEME_COLOR0 + int2(theme, 0));
+        } else switch (theme) {
+            case 0:
+                return _ChromaTheme0;
+            
+            case 1:
+                return _ChromaTheme1;
+            
+            case 2:
+                return _ChromaTheme2;
+            
+            case 3:
+                return _ChromaTheme3;
+            
+            default:
+                return 0.0;
+        }
+    }
+
+    // float3 ThemeHue(float value)
+    // {
+    //     float scaledTime = value * 4.0;
+    //     return lerp(ThemeColor(scaledTime), ThemeColor(scaledTime + 1), frac(scaledTime));
+    // }
+
+    fixed3 ChromaEffect(int effect, int band, float progress, float value)
+    {
+        fixed dft = 0.0;
+        if (effect > 7)
+            if (ShouldReact())
+            {
+                dft = AudioLinkLerpMultiline(ALPASS_DFT + float2(progress * AUDIOLINK_ETOTALBINS, 0.0)).g * 0.9;
+            } else
+                dft = (_Time.x * _ChromaSpeed) - progress;
+        
+        switch (effect)
+        {
+            case 1: // Theme 0 ~ Theme 1
+                return lerp(ThemeColor(0), ThemeColor(1), progress) * value;
+            
+            case 2: // Theme 2 ~ Theme 3
+                return lerp(ThemeColor(2), ThemeColor(3), progress) * value;
+
+            case 3: // Rainbow Gradient
+                return HSV2RGB(float3((_Time.x * 2.0 * _ChromaSpeed) - progress, 1.0, value));
+            
+            case 4: // Rainbow Gradient with waves
+                return HSV2RGB(float3(((_Time.y / 5.0) * _ChromaSpeed) - progress, 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
+            
+            case 5: // Rainbow Value
+                return HSV2RGB(float3(ShouldReact() ? value : (_Time.x + .5 * _ChromaSpeed), 1.0, value));
+            
+            case 6: // Rainbow Bar
+                return HSV2RGB(float3(ChronoTime(band) * _ChromaSpeed, 1.0, value));
+            
+            case 7: // Rainbow Gradient Flowing
+                return HSV2RGB(float3((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress, 1.0, value));
+
+            case 8: // Multi Theme
+                float scaledTime = progress * 3.0;
+                return lerp(ThemeColor(scaledTime), ThemeColor(scaledTime + 1), frac(scaledTime)) * value;
+            
+            case 9: // DFT Warped Hue
+                return HSV2RGB(float3((sin((dft - progress) * UNITY_PI) + 1.0) / 2.0, 1.0, value));
+
+            case 10: // DFT Hue
+                return HSV2RGB(float3(dft, 1.0, value));
+            
+            default:
+                return 0.0;
+        }
+    }
+
+    void ChromaFrag(MeshData d, inout SurfaceData o)
+    {
+        #if defined(_AUDIOLINKCHROMA)
+
+            if (!_EnableAudioLinkChroma) return;
+
+            #if defined(_LUMA)
+                #if defined(_LUMALEGACY)
+                    if (IsLumaAvailable() || IsLumaLegacyAvailable())
+                #else
+                    if (IsLumaAvailable())
+                #endif
+                        if (!_ReactPriority) return;
+            #endif
+
+            float2 uv = TRANSFORM_TEX(d.uv0, _ChromaMask);
+                
+            fixed4 mask = _ChromaMask.Sample(bilinear_clamp, uv);
+            #if defined(_CHROMAMAP)
+                fixed4 map = _ChromaMap.SampleLevel(bilinear_clamp, uv, 0);
+
+                int band = floor(clamp(mask.a * 4.0, 0.0, 3.99));
+            #else
+                uv = rotate(uv - 0.5, _ChromaRotation) + 0.5;
+                fixed4 map = fixed4(1.0, 0.0, 0.0, clamp(-uv.x, -10.0, 1.0));
+
+                int band = _ChromaBand;
+            #endif
+            map.a = pow(1.0 - map.a, _ChromaWarp);
+
+            fixed value = 1.0;
+            if (ShouldReact()) value = AudioLinkLerp(float2(map.a * _ChromaHistory, band)).r;
+
+            fixed3 color = 0.0;
+            color += ChromaEffect(_ChromaModeR, band, map.a, value) * map.r;
+            #if defined(_CHROMAMAP)
+                color += ChromaEffect(_ChromaModeG, band, map.a, value) * map.g;
+                color += ChromaEffect(_ChromaModeB, band, map.a, value) * map.b;
+            #endif
+
+            color = lerp(color, dot(color, fixed3(0.299, 0.587, 0.114)), _ChromaBiased) * _ChromaTint * mask.rgb;
+
+            o.Emission += color;
+        #endif
+    }
+}

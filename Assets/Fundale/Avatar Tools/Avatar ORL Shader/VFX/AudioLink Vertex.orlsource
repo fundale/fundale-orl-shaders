@@ -1,0 +1,73 @@
+%Properties()
+{
+    [ToggleUI]UI_AudioLinkVertexHeader("# AudioLink Vertex", Int) = 1
+    [Toggle(_AUDIOLINKVERTEX)]_EnableAudioLinkVertex("Enable AudioLink Vertex", Int) = 0
+    _AudioLinkVertexMap("Vertex Map %ShowIf(_EnableAudioLinkVertex)", 2D) = "white" {}
+    [Enum(Bass,0,Low Mid,1,High Mid,2,Treble,3)]_AudioLinkVertexBand("AudioLink Band %ShowIf(_EnableAudioLinkVertex)", Int) = 0
+    _AudioLinkVertexHistory("AudioLink History %ShowIf(_EnableAudioLinkVertex)", Range(0.0, 128.0)) = 32.0
+    _AudioLinkVertexIntensity("AudioLink Intensity %ShowIf(_EnableAudioLinkVertex)", Range(0.0, 1.0)) = 0.1
+}
+
+%ShaderFeatures()
+{
+    #pragma shader_feature _AUDIOLINKVERTEX
+}
+
+%Textures()
+{
+    TEXTURE2D(_AudioLinkVertexMap);
+    SAMPLER(sampler_AudioLinkVertexMap);
+}
+
+%Variables()
+{
+    #if defined(_AUDIOLINKVERTEX)
+        uniform int _EnableAudioLinkVertex;
+    #endif
+
+    uniform fixed4 _AudioLinkVertexMap_ST;
+    uniform half _AudioLinkVertexHistory;
+    uniform int _AudioLinkVertexBand;
+    uniform half _AudioLinkVertexIntensity;
+}
+
+%Vertex("AudioLinkVertex")
+{
+
+    float4 QuanternionMultiply(float4 a, float4 b)
+    {
+
+        return float4(a.w * b.xyz + b.w * a.xyz + cross(a.xyz, b.xyz), a.w * b.w - dot(a.xyz, b.xyz));
+    }
+
+    float3 QuanternionRotate(float3 pos, float3 vec, float rotate)
+    {
+
+        rotate /= 2.0;
+
+        float4 quat1 = float4(vec.xyz, cos(rotate));
+        quat1.xyz *= sin(rotate);
+
+        float4 quat2 = float4(-quat1.x, -quat1.y, -quat1.z, quat1.w);
+
+        float4 mulpos = (quat1 * float4(pos, 0.0)) * quat2;
+        mulpos = QuanternionMultiply(QuanternionMultiply(quat1, float4(pos, 0.0)), quat2);
+
+        return mulpos;
+
+    }
+
+    void AudioLinkVertex(inout VertexData v)
+    {
+        #if defined(_AUDIOLINKVERTEX)
+
+            if (!_EnableAudioLinkVertex) return;
+
+            half2 map = _AudioLinkVertexMap.SampleLevel(sampler_AudioLinkVertexMap, TRANSFORM_TEX(v.uv0.xy, _AudioLinkVertexMap), 0).rg;
+            half value = AudioLinkIsAvailable() ? AudioLinkLerp(float2(map.g * _AudioLinkVertexHistory, _AudioLinkVertexBand)).r * _AudioLinkVertexIntensity : 0.0;
+
+            v.vertex.xyz += v.normal.xyz * value * map.r;
+
+        #endif
+    }
+}

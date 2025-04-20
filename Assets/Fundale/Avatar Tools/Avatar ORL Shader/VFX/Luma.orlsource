@@ -1,0 +1,226 @@
+%Properties()
+{
+    UI_Luma_Header("# Luma", Int) = 1
+    [Toggle(_LUMA)]_EnableLuma("Enable Luma", Int) = 0
+    [Enum(Luma,0,AudioLink,1)]_ReactPriority("Reactive Priority %ShowIf(_EnableLuma && _EnableAudioLinkChroma)", Int) = 0
+    [Toggle(_LUMALEGACY)]_LumaLegacy("Legacy Luma Fallback %ShowIf(_EnableLuma)", Int) = 1
+    [HDR]_LumaTint("Luma Tint %ShowIf(_EnableLuma)", Color) = (1.0, 1.0, 1.0, 1.0)
+    _LumaMask("Luma Mask %ShowIf(_EnableLuma)", 2D) = "white" {}
+    [Toggle(_LUMAMAP)]_UseLumaMap("Use Luma Map %ShowIf(_EnableLuma)", Int) = 0
+    _LumaMap("Luma Map > %ShowIf(_EnableLuma && _UseLumaMap)", 2D) = "black" {}
+    _LumaRotation("Luma Rotation %ShowIf(_EnableLuma && !_UseLumaMap)", Range(-360, 360)) = 0
+
+    _LumaWarp("Luma Warp %ShowIf(_EnableLuma)", Range(0.0, 2.0)) = 1.0
+    _LumaBiased("Luma Bias %ShowIf(_EnableLuma)", Range(0.0, 1.0)) = 0.0
+
+    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad1("Luma Gradient 1 %ShowIf(_EnableLuma)", Int) = 4
+    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad2("Luma Gradient 2 %ShowIf(_EnableLuma)", Int) = 5
+    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad3("Luma Gradient 3 %ShowIf(_EnableLuma)", Int) = 6
+}
+
+%ShaderDefines()
+{
+    #ifndef LUMACONFIG
+        #define LUMACONFIG
+
+        #define LUMA_START 63
+        #define LUMA_POWER 7
+
+        #if defined(_LUMALEGACY)
+            #define LUMA_LEGACY_WIDTH 1920.0
+            #define LUMA_LEGACY_HEIGHT 1080.0
+            #define LUMA_LEGACY_SIZE fixed2(LUMA_LEGACY_WIDTH, LUMA_LEGACY_HEIGHT)
+
+            #define LUMA_LEGACY_LENGTH 200.0
+            #define LUMA_LEGACY_Y 533.0 // 547.0
+
+            #define LUMA_LEGACY_POWER_POSITION fixed2(1205.0, 553.0) //527.0 //fixed2(0.629, 0.511)
+            #define LUMA_LEGACY_THEME_POSITION fixed2(1645.0, 566.0) // 514.0
+            #define LUMA_LEGACY_THEME_SIZE 15.0
+
+            #define LUMA_LEGACY_GRAD_START1 1097.0 - 1.0
+            #define LUMA_LEGACY_GRAD_START2 1309.0 - 1.0
+            #define LUMA_LEGACY_GRAD_START3 1522.0
+        #endif
+    #endif
+}
+
+%ShaderFeatures()
+{
+    #pragma shader_feature _LUMA
+    #pragma shader_feature _LUMALEGACY
+    #pragma shader_feature _LUMAMAP
+}
+
+%Textures()
+{
+    TEXTURE2D(_LumaMask);
+    #if defined(_LUMAMAP)
+        TEXTURE2D(_LumaMap);
+    #endif
+
+    #ifndef STORED
+        #define STORED
+
+        #if defined(_LUMALEGACY)
+            TEXTURE2D(_Stored);
+        #endif
+    #endif
+
+    #ifndef BILINEAR_CLAMP
+        #define BILINEAR_CLAMP
+        SAMPLER(bilinear_clamp);
+    #endif
+
+    #ifndef POINT_CLAMP
+        #define POINT_CLAMP
+        SAMPLER(point_clamp);
+    #endif
+}
+
+%Variables()
+{
+    #if defined(_LUMA)
+        uniform int _EnableLuma;
+    #endif
+
+    #if defined(_LUMALEGACY)
+        uniform fixed4 _Stored_TexelSize;
+        const static int GRADSTART[3] = { LUMA_LEGACY_GRAD_START1, LUMA_LEGACY_GRAD_START2, LUMA_LEGACY_GRAD_START3 };
+    #endif
+
+    uniform float4 _LumaMask_ST;
+
+    uniform fixed4 _LumaTint;
+    uniform half _LumaWarp;
+    uniform half _LumaBiased;
+
+    uniform int _LumaGrad1;
+    uniform int _LumaGrad2;
+    uniform int _LumaGrad3;
+
+    #ifndef REACTPRIORITY
+        #define REACTPRIORITY
+        uniform int _ReactPriority;
+    #endif
+
+    #if !defined(_LUMAMAP)
+        uniform fixed _LumaRotation;
+    #endif
+}
+
+%Fragment("LumaFrag")
+{
+    #ifndef LUMACHECKS
+        #define LUMACHECKS
+        bool IsLumaLegacyAvailable()
+        {
+            #if defined(_LUMALEGACY)
+                return _Stored_TexelSize.z > 16 && all(_Stored.SampleLevel(point_clamp, LUMA_LEGACY_POWER_POSITION / LUMA_LEGACY_SIZE, 0).rgb == fixed3(1.0, 0.0, 0.0));
+            #else
+                return false;
+            #endif
+        }
+
+        bool IsLumaAvailable()
+        {
+            if (AudioLinkIsAvailable()) return AudioLinkData(int2(0, LUMA_START - LUMA_POWER)).r > 0.5;
+            return false;
+        }
+    #endif
+
+    #if !defined(ROTATE)
+    #define ROTATE
+        float2 rotate(float2 uv, float deg) {
+            deg *= 0.0174533;
+            float2 rotsinc = float2(sin(deg), cos(deg));
+            return mul(uv, float2x2(rotsinc.y, -rotsinc.x, rotsinc.x, rotsinc.y));
+        }
+    #endif
+
+    fixed3 LumaGradient(int grad, fixed prog)
+    {
+        return AudioLinkLerp(float2(prog * 127.0, LUMA_START - (grad % LUMA_POWER)));
+    }
+
+    fixed3 LumaLegacyGradient(int grad, fixed prog)
+    {
+        #if defined(_LUMALEGACY)
+            if (grad < 4)
+            {
+                fixed2 theme = fixed2((grad / 2) * LUMA_LEGACY_THEME_SIZE, -(grad % 2) * LUMA_LEGACY_THEME_SIZE);
+                return _Stored.SampleLevel(bilinear_clamp, (LUMA_LEGACY_THEME_POSITION + theme) / LUMA_LEGACY_SIZE, 0);
+            } else {
+                prog = GRADSTART[grad - 4] + (LUMA_LEGACY_LENGTH * prog);
+                return _Stored.SampleLevel(bilinear_clamp, fixed2(prog, LUMA_LEGACY_Y) / LUMA_LEGACY_SIZE, 0);
+            }
+        #endif
+
+        return 0.0;
+    }
+
+    void LumaFrag(MeshData d, inout SurfaceData o)
+    {
+        #if defined(_LUMA)
+
+            if (!_EnableLuma) return;
+
+            #if defined(_AUDIOLINKCHROMA)
+                #if defined(_LUMALEGACY)
+                    if (IsLumaAvailable() || IsLumaLegacyAvailable())
+                #else
+                    if (IsLumaAvailable())
+                #endif
+                        if (_ReactPriority) return;
+            #endif
+
+            #if defined(_LUMALEGACY)
+                if (!IsLumaAvailable() && !IsLumaLegacyAvailable()) return;
+            #else
+                if (!IsLumaAvailable()) return;
+            #endif
+
+            float2 uv = TRANSFORM_TEX(d.uv0, _LumaMask);
+
+            fixed4 mask = _LumaMask.Sample(bilinear_clamp, uv);
+            #if defined(_LUMAMAP)
+                fixed4 map = _LumaMap.SampleLevel(bilinear_clamp, uv, 0);
+            #else
+                uv = rotate(uv - 0.5, _LumaRotation) + 0.5;
+                fixed4 map = fixed4(1.0, 0.0, 0.0, -uv.x);
+            #endif
+
+            map.a = pow(1.0 - map.a, _LumaWarp);
+            fixed3 color = 0.0;
+
+            #if defined(_LUMALEGACY)
+                if (IsLumaAvailable())
+                {
+                    color += LumaGradient(_LumaGrad1, map.a) * map.r;
+                    #if defined(_LUMAMAP)
+                        color += LumaGradient(_LumaGrad2, map.a) * map.g;
+                        color += LumaGradient(_LumaGrad3, map.a) * map.b;
+                    #endif
+                } else {
+                    map.a = 1.0 - map.a;
+                    color += LumaLegacyGradient(_LumaGrad1, map.a) * map.r;
+                    #if defined(_LUMAMAP)
+                        color += LumaLegacyGradient(_LumaGrad2, map.a) * map.g;
+                        color += LumaLegacyGradient(_LumaGrad3, map.a) * map.b;
+                    #endif
+                }
+            #else
+                color += LumaGradient(_LumaGrad1, map.a) * map.r;
+                #if defined(_LUMAMAP)
+                    color += LumaGradient(_LumaGrad2, map.a) * map.g;
+                    color += LumaGradient(_LumaGrad3, map.a) * map.b;
+                #endif
+            #endif
+
+            color = lerp(color, dot(color, fixed3(0.299, 0.587, 0.144)), _LumaBiased) * _LumaTint * mask.rgb;
+
+            o.Emission += color;
+
+        #endif
+    }
+}

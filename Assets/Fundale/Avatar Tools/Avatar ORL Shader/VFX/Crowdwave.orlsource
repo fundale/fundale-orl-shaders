@@ -1,0 +1,121 @@
+%Properties()
+{
+    UI_Crowdwave_Header("# Crowdwave", Int) = 1
+    [Toggle(_CROWDWAVE)]_EnableCrowdwave("Enable Crowdwave", Int) = 0
+    [Toggle(_CROWDWAVERANGE)]_CrowdwaveRange("Crowdwave Use Range %ShowIf(_EnableCrowdwave)", Int) = 0
+    [HDR]_CrowdwaveTint("Crowdwave Tint %ShowIf(_EnableCrowdwave)", Color) = (1.0, 1.0, 1.0, 1.0)
+    _CrowdwaveMask("Crowdwave Mask %ShowIf(_EnableCrowdwave)", 2D) = "white" {}
+    _CrowdwaveBias("Crowdwave Bias %ShowIf(_EnableCrowdwave)", Range(0.0, 1.0)) = 0.0
+}
+
+%ShaderFeatures()
+{
+    #pragma shader_feature _CROWDWAVE
+    #pragma shader_feature _CROWDWAVERANGE
+}
+
+%Textures()
+{
+    #ifndef _UDON_VIDEOTEX
+        #define _UDON_VIDEOTEX
+        TEXTURE2D(_Udon_VideoTex);
+    #endif
+    TEXTURE2D(_Udon_CrowdwaveMask);
+    TEXTURE2D(_CrowdwaveMask);
+
+    SAMPLER(sampler_Udon_CrowdwaveMask);
+    SAMPLER(sampler_CrowdwaveMask);
+
+    #ifndef BILINEAR_CLAMP
+        #define BILINEAR_CLAMP
+        SAMPLER(bilinear_clamp);
+    #endif
+}
+
+%Variables()
+{
+    #if defined(_CROWDWAVE)
+        uniform int _EnableCrowdwave;
+    #endif
+
+    #ifndef _UDON_VIDEOTEX_TEXELSIZE
+        #define _UDON_VIDEOTEX_TEXELSIZE
+        uniform float4 _Udon_VideoTex_TexelSize;
+    #endif
+
+    uniform fixed4 _CrowdwaveTint;
+    uniform half _CrowdwaveBias;
+    uniform float4 _CrowdwaveMask_ST;
+
+    uniform float4x4 _Udon_CrowdwaveMeta;
+}
+
+%Fragment("CrowdwaveFrag")
+{
+    #if !defined(ROTATE)
+    #define ROTATE
+        float2 rotate(float2 uv, float deg) {
+            deg *= 0.0174533;
+            float2 rotsinc = float2(sin(deg), cos(deg));
+            return mul(uv, float2x2(rotsinc.y, -rotsinc.x, rotsinc.x, rotsinc.y));
+        }
+    #endif
+
+    #ifndef ISVIDEOAVAILABLE
+        #define ISVIDEOAVAILABLE
+        bool IsVideoAvailable()
+        {
+            return _Udon_VideoTex_TexelSize.z > 16;
+        }
+    #endif
+
+    fixed4 SampleCrowdwave(float3 objectPos)
+    {
+
+        float2 position = mul(unity_ObjectToWorld, float4(objectPos, 1.0)).xz;
+
+        float2 worldPosition = _Udon_CrowdwaveMeta._m20_m21_m22_m23.xz;
+        float4 screenBounds = _Udon_CrowdwaveMeta._m00_m01_m02_m03;
+        float2 worldBounds = _Udon_CrowdwaveMeta._m10_m11_m12_m13.xy;
+        fixed worldRotation = _Udon_CrowdwaveMeta._m20_m21_m22_m23.w;
+        half intensity = _Udon_CrowdwaveMeta._m10_m11_m12_m13.z;
+        //_Udon_CrowdwaveMeta._m10_m11_m12_m13.w;
+        //_Udon_CrowdwaveMeta._m30_m31_m32_m33;
+
+        intensity = intensity > 1.0 ? intensity - 1.0 : 0.0;
+
+        position -= worldPosition;
+        position.xy = rotate(position.xy, worldRotation);
+        position.xy += worldBounds / 2.0;
+        position.xy /= worldBounds;
+
+        half mask = _Udon_CrowdwaveMask.SampleLevel(sampler_Udon_CrowdwaveMask, position.xy, 0);
+        if (!IsVideoAvailable() || position.x < 0.0 || position.x > 1.0 || position.y < 0.0 || position.y > 1.0) mask = 0.0;
+
+        position.xy *= screenBounds.xy;
+        position.xy += screenBounds.zw;
+
+        fixed3 color = _Udon_VideoTex.SampleLevel(bilinear_clamp, position.xy, 0) * intensity * mask;
+
+        return fixed4(color.xyz, mask);
+
+    }
+    
+    void CrowdwaveFrag(MeshData d, inout SurfaceData o)
+    {
+
+        #if defined(_CROWDWAVE)
+            if (!_EnableCrowdwave) return;
+
+            half3 crowdwaveMask = _CrowdwaveMask.Sample(sampler_CrowdwaveMask, TRANSFORM_TEX(d.uv0, _CrowdwaveMask));
+
+            #if defined(_CROWDWAVERANGE)
+                fixed3 color = SampleCrowdwave(d.localSpacePosition).rgb;
+            #else
+                fixed3 color = SampleCrowdwave(0.0).rgb;
+            #endif
+
+            o.Emission += lerp(color, dot(color, fixed3(0.299, 0.587, 0.144)), _CrowdwaveBias) * _CrowdwaveTint * crowdwaveMask;
+        #endif
+    }
+}

@@ -1,0 +1,32 @@
+%ShaderName("Fundale/Surface/ORL Toon Custom")
+%LightingModel("Lighting/ToonCustom")
+%CustomEditor("ORL.ShaderInspector.InspectorGUI")
+
+%ShaderTags()
+{
+    "RenderType" = "Opaque" "Queue" = "Geometry"
+}
+
+%Includes()
+{
+    "@/Modules/AudioLink",
+    "self",
+    "@/Modules/Toon/Main",
+    "@/Modules/Toon/Occlusion",
+    "VFX/AudioLink Vertex",
+    "@/Modules/Toon/Normals",
+    "Lighting/Outline",
+    "@/Modules/Toon/Specular",
+    "@/Modules/Toon/Reflections",
+    "@/Modules/Toon/AudioLink",
+    "@/Modules/Toon/Emission",
+    "@/Modules/Toon/RimLight",
+    "@/Modules/Toon/ShadowRim",
+    "VFX/AudioLink Chroma",
+    "VFX/Luma",
+    "VFX/Video",
+    "VFX/Crowdwave",
+    "VFX/LTCGI",
+    "Lighting/Toon Sheen",
+    "@/Modules/VRCFeatures"
+}
