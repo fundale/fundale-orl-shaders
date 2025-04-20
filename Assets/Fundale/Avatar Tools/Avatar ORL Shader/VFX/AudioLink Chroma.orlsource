@@ -27,7 +27,7 @@
 {
     #ifndef LUMACONFIG
         #define LUMACONFIG
-        
+
         #define LUMA_START 63
         #define LUMA_POWER 7
 
@@ -93,7 +93,7 @@
     uniform int _ChromaModeB;
 
     uniform fixed _ChromaHistory;
-    
+
     uniform half _ChromaWarp;
     uniform half _ChromaSpeed;
     uniform half _ChromaBiased;
@@ -162,16 +162,16 @@
         } else switch (theme) {
             case 0:
                 return _ChromaTheme0;
-            
+
             case 1:
                 return _ChromaTheme1;
-            
+
             case 2:
                 return _ChromaTheme2;
-            
+
             case 3:
                 return _ChromaTheme3;
-            
+
             default:
                 return 0.0;
         }
@@ -186,46 +186,46 @@
     fixed3 ChromaEffect(int effect, int band, float progress, float value)
     {
         fixed dft = 0.0;
-        if (effect > 7)
+        if (effect > 8)
             if (ShouldReact())
             {
                 dft = AudioLinkLerpMultiline(ALPASS_DFT + float2(progress * AUDIOLINK_ETOTALBINS, 0.0)).g * 0.9;
             } else
                 dft = (_Time.x * _ChromaSpeed) - progress;
-        
+
         switch (effect)
         {
-            case 1: // Theme 0 ~ Theme 1
+            case 1: // Color Theme 1 to Color Theme 2
                 return lerp(ThemeColor(0), ThemeColor(1), progress) * value;
-            
-            case 2: // Theme 2 ~ Theme 3
+
+            case 2: // Color Theme 3 to Color Theme 4
                 return lerp(ThemeColor(2), ThemeColor(3), progress) * value;
 
-            case 3: // Rainbow Gradient
-                return HSV2RGB(float3((_Time.x * 2.0 * _ChromaSpeed) - progress, 1.0, value));
-            
-            case 4: // Rainbow Gradient with waves
-                return HSV2RGB(float3(((_Time.y / 5.0) * _ChromaSpeed) - progress, 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
-            
-            case 5: // Rainbow Value
-                return HSV2RGB(float3(ShouldReact() ? value : (_Time.x + .5 * _ChromaSpeed), 1.0, value));
-            
-            case 6: // Rainbow Bar
-                return HSV2RGB(float3(ChronoTime(band) * _ChromaSpeed, 1.0, value));
-            
-            case 7: // Rainbow Gradient Flowing
-                return HSV2RGB(float3((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress, 1.0, value));
-
-            case 8: // Multi Theme
+            case 3: // Color Themes 1 - 4
                 float scaledTime = progress * 3.0;
                 return lerp(ThemeColor(scaledTime), ThemeColor(scaledTime + 1), frac(scaledTime)) * value;
-            
-            case 9: // DFT Warped Hue
+
+            case 4: // Solid Hue Chronotensity
+                return HSV2RGB(float3(ChronoTime(band) * _ChromaSpeed, 1.0, value));
+
+            case 5: // Hue Value
+                return HSV2RGB(float3(ShouldReact() ? value : (_Time.x + .5 * _ChromaSpeed), 1.0, value));
+
+            case 6: // Hue Time Gradient
+                return HSV2RGB(float3((_Time.x * 2.0 * _ChromaSpeed) - progress, 1.0, value));
+
+            case 7: // Hue Time Gradient + Time Pulse Gradient
+                return HSV2RGB(float3(((_Time.y / 5.0) * _ChromaSpeed) - progress, 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
+
+            case 8: // Hue Chronotensity Gradient
+                return HSV2RGB(float3((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress, 1.0, value));
+
+            case 9: // Waveform Hue
+                return HSV2RGB(float3(dft, 1.0, value));
+
+            case 10: // Warped Waveform Hue
                 return HSV2RGB(float3((sin((dft - progress) * UNITY_PI) + 1.0) / 2.0, 1.0, value));
 
-            case 10: // DFT Hue
-                return HSV2RGB(float3(dft, 1.0, value));
-            
             default:
                 return 0.0;
         }
@@ -247,7 +247,7 @@
             #endif
 
             float2 uv = TRANSFORM_TEX(d.uv0, _ChromaMask);
-                
+
             fixed4 mask = _ChromaMask.Sample(bilinear_clamp, uv);
             #if defined(_CHROMAMAP)
                 fixed4 map = _ChromaMap.SampleLevel(bilinear_clamp, uv, 0);

@@ -36,12 +36,12 @@
   - Mode 0 is off.
   1. Color Theme 1 to Color Theme 2
   2. Color Theme 3 to Color Theme 4
-  3. Hue Time Gradient
-  4. Hue Time Gradient + Time Pulse Gradient
+  3. Color Themes 1 - 4
+  4. Solid Hue Chronotensity
   5. Hue Value
-  6. Solid Hue Chronotensity
-  7. Hue Chronotensity Gradient
-  8. Color Themes 1 - 4
+  6. Hue Time Gradient
+  7. Hue Time Gradient + Time Pulse Gradient
+  8. Hue Chronotensity Gradient
   9. Waveform Hue
   10. Warped Waveform Hue
 - Chroma Speed: How fast to scroll Chroma effects.

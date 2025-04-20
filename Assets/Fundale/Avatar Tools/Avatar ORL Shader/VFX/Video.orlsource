@@ -59,7 +59,7 @@
 
     uniform fixed4 _VideoTint;
     uniform float4 _VideoMask_ST;
-    
+
     #if !defined(_VIDEOMAP)
         uniform fixed _VideoRatio;
         uniform fixed _VideoRotation;
@@ -94,19 +94,19 @@
             fixed4 video = 0.0;
 
             #if defined(_VIDEOMAP)
-                half mask = _VideoMask.Sample(bilinear_clamp, videouv);
+                half3 mask = _VideoMask.Sample(bilinear_clamp, videouv);
                 videouv = _VideoMap.SampleLevel(bilinear_clamp, videouv, 0).rg;
-            #else           
+            #else
                 videouv -= 0.5;
                 videouv = rotate(videouv, _VideoRotation);
                 videouv.y *= _VideoRatio;
                 videouv += 0.5;
-                half mask = _VideoMask.Sample(bilinear_clamp, videouv);
+                half3 mask = _VideoMask.Sample(bilinear_clamp, videouv);
             #endif
 
-            
 
-            if (videouv.x > 0.0 && videouv.x < 1.0 && videouv.y > 0.0 && videouv.y < 1.0 && mask > 0.01)
+
+            if (videouv.x > 0.0 && videouv.x < 1.0 && videouv.y > 0.0 && videouv.y < 1.0 && any(mask > 0.01))
             {
                 if (IsVideoAvailable())
                 {
@@ -116,7 +116,7 @@
                     video.rgb = _Udon_VideoTex.SampleLevel(bilinear_clamp, videouv, 0);
                 } else video.rgb = _VideoFallback.SampleLevel(bilinear_clamp, videouv, 0);
 
-                fixed3 videocolor = video.rgb * mask * _VideoTint.rgb;
+                fixed3 videocolor = video.rgb * mask.rgb * _VideoTint.rgb;
                 #if defined(_VIDEOALBEDO)
                     o.Albedo.rgb = lerp(o.Albedo.rgb, videocolor, _VideoTint.a);
                 #else
