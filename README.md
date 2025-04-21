@@ -1,5 +1,7 @@
 # Fundale's ORL Shader Modules
 
+## Requires the Development version of [Orels1's Modular Shader Generator](https://dev.shaders.orels.sh/docs/installation), then enable "Show Prerelease Packages" in VCC or ALCOM.
+
 ## A small collection of the [ORL Modules](https://github.com/orels1/orels-Unity-Shaders) I use on my VRChat Avatars, along with the [XSToon Base](https://github.com/Xiexe/Xiexes-Unity-Shaders) that it's built on.
 
 ## Some of the Modules included (but not limited to) are:
