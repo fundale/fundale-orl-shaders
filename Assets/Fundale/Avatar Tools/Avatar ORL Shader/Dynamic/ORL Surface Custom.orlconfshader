@@ -9,10 +9,10 @@
 {
     "@/Shaders/ORL Standard LTCGI",
     "@/Modules/AudioLink",
-    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/VFX/AudioLink Chroma.orlsource",
-    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/VFX/AudioLink Vertex.orlsource",
-    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/VFX/Crowdwave.orlsource",
-    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/VFX/Luma.orlsource",
-    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/VFX/Video.orlsource",
+    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/Modules/VFX/AudioLink Chroma.orlsource",
+    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/Modules/VFX/AudioLink Vertex.orlsource",
+    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/Modules/VFX/Crowdwave.orlsource",
+    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/Modules/VFX/Luma.orlsource",
+    "/Assets/Fundale/Avatar Tools/Avatar ORL Shader/Modules/VFX/Video.orlsource",
     "self"
 }
