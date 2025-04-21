@@ -1,4 +1,4 @@
-%ShaderName("Fundale/Surface/ORL Toon Custom")
+%ShaderName("Fundale/Avatar/ORL Toon Custom")
 %LightingModel("Lighting/ToonCustom")
 %CustomEditor("ORL.ShaderInspector.InspectorGUI")
 
