@@ -14,8 +14,8 @@
     _LumaBiased("Luma Bias %ShowIf(_EnableLuma)", Range(0.0, 1.0)) = 0.0
 
     [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad1("Luma Gradient 1 %ShowIf(_EnableLuma)", Int) = 4
-    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad2("Luma Gradient 2 %ShowIf(_EnableLuma)", Int) = 5
-    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad3("Luma Gradient 3 %ShowIf(_EnableLuma)", Int) = 6
+    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad2("Luma Gradient 2 %ShowIf(_EnableLuma && _UseLumaMap)", Int) = 5
+    [Enum(Luma History One,0,Luma History Two,1,Luma History Three,2,Luma History Four,3,Luma Gradient One,4,Luma Gradient Two,5,Luma Gradient Three,6)]_LumaGrad3("Luma Gradient 3 %ShowIf(_EnableLuma && _UseLumaMap)", Int) = 6
 }
 
 %ShaderDefines()
@@ -185,12 +185,13 @@
             fixed4 mask = _LumaMask.Sample(bilinear_clamp, uv);
             #if defined(_LUMAMAP)
                 fixed4 map = _LumaMap.SampleLevel(bilinear_clamp, uv, 0);
+                map.a = 1.0 - map.a;
             #else
                 uv = rotate(uv - 0.5, _LumaRotation) + 0.5;
-                fixed4 map = fixed4(1.0, 0.0, 0.0, -uv.x);
+                fixed4 map = fixed4(1.0, 0.0, 0.0, uv.x);
             #endif
 
-            map.a = pow(1.0 - map.a, _LumaWarp);
+            map.a = pow(map.a, _LumaWarp);
             fixed3 color = 0.0;
 
             #if defined(_LUMALEGACY)

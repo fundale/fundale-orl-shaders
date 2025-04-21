@@ -10,8 +10,8 @@
     _ChromaRotation("Chroma Rotation %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Range(-360, 360)) = 0
     [Toggle]_ChromaForceIdle("Force Chroma Idle %ShowIf(_EnableAudioLinkChroma)", Int) = 0
     [IntRange]_ChromaModeR("Chroma Mode R %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
-    [IntRange]_ChromaModeG("Chroma Mode G %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
-    [IntRange]_ChromaModeB("Chroma Mode B %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
+    [IntRange]_ChromaModeG("Chroma Mode G %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", Range(0, 10)) = 0
+    [IntRange]_ChromaModeB("Chroma Mode B %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", Range(0, 10)) = 0
     _ChromaHistory("Chroma History %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 128.0)) = 32.0
     _ChromaWarp("Chroma Warp %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 2.0)) = 1.0
     _ChromaSpeed("Chroma Speed %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 10.0)) = 1.0
@@ -251,15 +251,16 @@
             fixed4 mask = _ChromaMask.Sample(bilinear_clamp, uv);
             #if defined(_CHROMAMAP)
                 fixed4 map = _ChromaMap.SampleLevel(bilinear_clamp, uv, 0);
+                map.a = 1.0 - map.a;
 
                 int band = floor(clamp(mask.a * 4.0, 0.0, 3.99));
             #else
                 uv = rotate(uv - 0.5, _ChromaRotation) + 0.5;
-                fixed4 map = fixed4(1.0, 0.0, 0.0, clamp(-uv.x, -10.0, 1.0));
+                fixed4 map = fixed4(1.0, 0.0, 0.0, clamp(uv.x, 0.0, 1.0));
 
                 int band = _ChromaBand;
             #endif
-            map.a = pow(1.0 - map.a, _ChromaWarp);
+            map.a = pow(map.a, _ChromaWarp);
 
             fixed value = 1.0;
             if (ShouldReact()) value = AudioLinkLerp(float2(map.a * _ChromaHistory, band)).r;
