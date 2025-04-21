@@ -69,7 +69,6 @@
 ## Video
 - Apply Video Transform: Whether to adjust and clip the Global Video Texture according to what the world Author intends.
 - Video As Albedo: Whether to render the Global Video Texture as lit (Albedo) rather than emissive (Emission).
-- Video Mask: [R] Texture mask that determines the shape of the Video.
 - Video Fallback: The fallback texture to display when no Global Video Texture is available.
 - Video UV Map: Uses [R,G] as the [X,Y] to use from the video, may require Blender / Substance baking.
 - Video Ratio: The aspect Ratio to display the Global Video Texture (decal) in, usually 16:9 (1.777777)
