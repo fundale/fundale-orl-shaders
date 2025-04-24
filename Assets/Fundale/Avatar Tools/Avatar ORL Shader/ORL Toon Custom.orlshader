@@ -1,5 +1,5 @@
 %ShaderName("Fundale/Avatar/ORL Toon Custom")
-%LightingModel("../Modules/Lighting/ToonCustom")
+%LightingModel("Modules/Lighting/ToonCustom")
 %CustomEditor("ORL.ShaderInspector.InspectorGUI")
 
 %ShaderFeatures()
@@ -24,20 +24,20 @@
     "self",
     "@/Modules/Toon/Main",
     "@/Modules/Toon/Occlusion",
-    "../Modules/VFX/AudioLink Vertex",
+    "Modules/VFX/AudioLink Vertex",
     "@/Modules/Toon/Normals",
-    "../Modules/Lighting/Outline",
+    "Modules/Lighting/Outline",
     "@/Modules/Toon/Specular",
     "@/Modules/Toon/Reflections",
     "@/Modules/Toon/AudioLink",
     "@/Modules/Toon/Emission",
     "@/Modules/Toon/RimLight",
     "@/Modules/Toon/ShadowRim",
-    "../Modules/VFX/AudioLink Chroma",
-    "../Modules/VFX/Luma",
-    "../Modules/VFX/Video",
-    "../Modules/VFX/Crowdwave",
-    "../Modules/VFX/LTCGI",
-    "../Modules/Lighting/Toon Sheen",
+    "Modules/VFX/AudioLink Chroma",
+    "Modules/VFX/Luma",
+    "Modules/VFX/Video",
+    "Modules/VFX/Crowdwave",
+    "Modules/VFX/LTCGI",
+    "Modules/Lighting/Toon Sheen",
     "@/Modules/VRCFeatures"
 }
