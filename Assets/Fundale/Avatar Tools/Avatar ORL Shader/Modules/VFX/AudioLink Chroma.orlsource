@@ -59,8 +59,10 @@
 %Textures()
 {
     TEXTURE2D(_ChromaMask);
+    SAMPLER(sampler_ChromaMask);
     #if defined(_CHROMAMAP)
         TEXTURE2D(_ChromaMap);
+        SAMPLER(sampler_ChromaMap);
     #endif
 
     #ifndef STORED
@@ -243,14 +245,14 @@
                 #else
                     if (IsLumaAvailable())
                 #endif
-                        if (!_ReactPriority) return;
+                        if (!_ReactPriority || (_ReactPriority && !AudioLinkIsAvailable())) return;
             #endif
 
             float2 uv = TRANSFORM_TEX(d.uv0, _ChromaMask);
 
-            fixed4 mask = _ChromaMask.Sample(bilinear_clamp, uv);
+            fixed4 mask = _ChromaMask.Sample(sampler_ChromaMask, uv);
             #if defined(_CHROMAMAP)
-                fixed4 map = _ChromaMap.SampleLevel(bilinear_clamp, uv, 0);
+                fixed4 map = _ChromaMap.SampleLevel(sampler_ChromaMap, uv, 0);
                 map.a = 1.0 - map.a;
 
                 int band = floor(clamp(mask.a * 4.0, 0.0, 3.99));

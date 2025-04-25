@@ -55,8 +55,10 @@
 %Textures()
 {
     TEXTURE2D(_LumaMask);
+    SAMPLER(sampler_LumaMask);
     #if defined(_LUMAMAP)
         TEXTURE2D(_LumaMap);
+        SAMPLER(sampler_LumaMap);
     #endif
 
     #ifndef STORED
@@ -171,7 +173,7 @@
                 #else
                     if (IsLumaAvailable())
                 #endif
-                        if (_ReactPriority) return;
+                        if (_ReactPriority && AudioLinkIsAvailable()) return;
             #endif
 
             #if defined(_LUMALEGACY)
@@ -182,9 +184,9 @@
 
             float2 uv = TRANSFORM_TEX(d.uv0, _LumaMask);
 
-            fixed4 mask = _LumaMask.Sample(bilinear_clamp, uv);
+            fixed4 mask = _LumaMask.Sample(sampler_LumaMask, uv);
             #if defined(_LUMAMAP)
-                fixed4 map = _LumaMap.SampleLevel(bilinear_clamp, uv, 0);
+                fixed4 map = _LumaMap.SampleLevel(sampler_LumaMap, uv, 0);
                 map.a = 1.0 - map.a;
             #else
                 uv = rotate(uv - 0.5, _LumaRotation) + 0.5;
