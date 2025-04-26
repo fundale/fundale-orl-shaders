@@ -5,16 +5,18 @@
     [HDR]_ChromaTint("Chroma Tint %ShowIf(_EnableAudioLinkChroma)", Color) = (1.0, 1.0, 1.0, 1.0)
     _ChromaMask("Chroma Mask %ShowIf(_EnableAudioLinkChroma)", 2D) = "white" {}
     [Toggle(_CHROMAMAP)]_UseChromaMap("Use Chroma Map %ShowIf(_EnableAudioLinkChroma)", Int) = 0
+    [Toggle(_CHROMASTFX)]_ChromaScaleEffects("Chroma Scale Effects %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Int) = 1
     _ChromaMap("Chroma Map > %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", 2D) = "black" {}
     [Enum(Bass,0,Low Mid,1,High Mid,2,Treble,3)]_ChromaBand("Chroma Band %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Int) = 0
     _ChromaRotation("Chroma Rotation %ShowIf(_EnableAudioLinkChroma && !_UseChromaMap)", Range(-360, 360)) = 0
+    _ChromaIdleIntensity("Chroma Idle Intensity %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 5.0)) = 1.0
     [Toggle]_ChromaForceIdle("Force Chroma Idle %ShowIf(_EnableAudioLinkChroma)", Int) = 0
     [IntRange]_ChromaModeR("Chroma Mode R %ShowIf(_EnableAudioLinkChroma)", Range(0, 10)) = 0
     [IntRange]_ChromaModeG("Chroma Mode G %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", Range(0, 10)) = 0
     [IntRange]_ChromaModeB("Chroma Mode B %ShowIf(_EnableAudioLinkChroma && _UseChromaMap)", Range(0, 10)) = 0
     _ChromaHistory("Chroma History %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 128.0)) = 32.0
     _ChromaWarp("Chroma Warp %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 2.0)) = 1.0
-    _ChromaSpeed("Chroma Speed %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 10.0)) = 1.0
+    _ChromaSpeed("Chroma Speed %ShowIf(_EnableAudioLinkChroma)", Range(-10.0, 10.0)) = 1.0
     _ChromaBiased("Chroma Color Bias %ShowIf(_EnableAudioLinkChroma)", Range(0.0, 1.0)) = 0.0
     [Toggle]_ChromaForceTheme("Force Chroma Theme %ShowIf(_EnableAudioLinkChroma)", Int) = 0
     _ChromaTheme0("Chroma Theme 0 %ShowIf(_EnableAudioLinkChroma)", Color) = (1.0, 0.0, 0.0, 1.0)
@@ -54,6 +56,7 @@
 {
     #pragma shader_feature _AUDIOLINKCHROMA
     #pragma shader_feature _CHROMAMAP
+    #pragma shader_feature _CHROMASTFX
 }
 
 %Textures()
@@ -88,7 +91,12 @@
     uniform float4 _ChromaMask_ST;
 
     uniform fixed4 _ChromaTint;
-    uniform int _ChromaForceIdle;
+    uniform half _ChromaIdleIntensity;
+
+    #ifndef _CHROMAFORCEIDLE
+        #define _CHROMAFORCEIDLE
+        uniform int _ChromaForceIdle;
+    #endif
 
     uniform int _ChromaModeR;
     uniform int _ChromaModeG;
@@ -208,22 +216,22 @@
                 return lerp(ThemeColor(scaledTime), ThemeColor(scaledTime + 1), frac(scaledTime)) * value;
 
             case 4: // Solid Hue Chronotensity
-                return HSV2RGB(float3(ChronoTime(band) * _ChromaSpeed, 1.0, value));
+                return HSV2RGB(float3(frac(ChronoTime(band) * _ChromaSpeed), 1.0, value));
 
             case 5: // Hue Value
-                return HSV2RGB(float3(ShouldReact() ? value : (_Time.x + .5 * _ChromaSpeed), 1.0, value));
+                return HSV2RGB(float3(ShouldReact() ? value : frac(_Time.x + .5 * _ChromaSpeed), 1.0, value));
 
             case 6: // Hue Time Gradient
-                return HSV2RGB(float3((_Time.x * 2.0 * _ChromaSpeed) - progress, 1.0, value));
+                return HSV2RGB(float3(frac((_Time.x * 2.0 * _ChromaSpeed) - progress), 1.0, value));
 
             case 7: // Hue Time Gradient + Time Pulse Gradient
-                return HSV2RGB(float3(((_Time.y / 5.0) * _ChromaSpeed) - progress, 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
+                return HSV2RGB(float3(frac(((_Time.y / 5.0) * _ChromaSpeed) - progress), 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
 
             case 8: // Hue Chronotensity Gradient
-                return HSV2RGB(float3((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress, 1.0, value));
+                return HSV2RGB(float3(frac((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress), 1.0, value));
 
             case 9: // Waveform Hue
-                return HSV2RGB(float3(dft, 1.0, value));
+                return HSV2RGB(float3(frac(dft), 1.0, value));
 
             case 10: // Warped Waveform Hue
                 return HSV2RGB(float3((sin((dft - progress) * UNITY_PI) + 1.0) / 2.0, 1.0, value));
@@ -240,6 +248,8 @@
             if (!_EnableAudioLinkChroma) return;
 
             #if defined(_LUMA)
+                if (!_ChromaForceIdle)
+                
                 #if defined(_LUMALEGACY)
                     if (IsLumaAvailable() || IsLumaLegacyAvailable())
                 #else
@@ -257,6 +267,9 @@
 
                 int band = floor(clamp(mask.a * 4.0, 0.0, 3.99));
             #else
+                #if !defined(_CHROMASTFX)
+                    uv = d.uv0;
+                #endif
                 uv = rotate(uv - 0.5, _ChromaRotation) + 0.5;
                 fixed4 map = fixed4(1.0, 0.0, 0.0, clamp(uv.x, 0.0, 1.0));
 
@@ -264,7 +277,7 @@
             #endif
             map.a = pow(map.a, _ChromaWarp);
 
-            fixed value = 1.0;
+            fixed value = _ChromaIdleIntensity;
             if (ShouldReact()) value = AudioLinkLerp(float2(map.a * _ChromaHistory, band)).r;
 
             fixed3 color = 0.0;

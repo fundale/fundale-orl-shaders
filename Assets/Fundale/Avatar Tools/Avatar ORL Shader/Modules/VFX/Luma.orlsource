@@ -7,6 +7,7 @@
     [HDR]_LumaTint("Luma Tint %ShowIf(_EnableLuma)", Color) = (1.0, 1.0, 1.0, 1.0)
     _LumaMask("Luma Mask %ShowIf(_EnableLuma)", 2D) = "white" {}
     [Toggle(_LUMAMAP)]_UseLumaMap("Use Luma Map %ShowIf(_EnableLuma)", Int) = 0
+    [Toggle(_LUMASTFX)]_LumaScaleEffects("Luma Scale Effects %ShowIf(_EnableLuma && !_UseLumaMap)", Int) = 1
     _LumaMap("Luma Map > %ShowIf(_EnableLuma && _UseLumaMap)", 2D) = "black" {}
     _LumaRotation("Luma Rotation %ShowIf(_EnableLuma && !_UseLumaMap)", Range(-360, 360)) = 0
 
@@ -50,6 +51,7 @@
     #pragma shader_feature _LUMA
     #pragma shader_feature _LUMALEGACY
     #pragma shader_feature _LUMAMAP
+    #pragma shader_feature _LUMASTFX
 }
 
 %Textures()
@@ -96,6 +98,11 @@
     uniform fixed4 _LumaTint;
     uniform half _LumaWarp;
     uniform half _LumaBiased;
+
+    #ifndef _CHROMAFORCEIDLE
+        #define _CHROMAFORCEIDLE
+        uniform int _ChromaForceIdle;
+    #endif
 
     uniform int _LumaGrad1;
     uniform int _LumaGrad2;
@@ -168,6 +175,7 @@
             if (!_EnableLuma) return;
 
             #if defined(_AUDIOLINKCHROMA)
+                if (_ChromaForceIdle) return;
                 #if defined(_LUMALEGACY)
                     if (IsLumaAvailable() || IsLumaLegacyAvailable())
                 #else
@@ -189,6 +197,9 @@
                 fixed4 map = _LumaMap.SampleLevel(sampler_LumaMap, uv, 0);
                 map.a = 1.0 - map.a;
             #else
+                #if !defined(_LUMASTFX)
+                    uv = d.uv0;
+                #endif
                 uv = rotate(uv - 0.5, _LumaRotation) + 0.5;
                 fixed4 map = fixed4(1.0, 0.0, 0.0, uv.x);
             #endif

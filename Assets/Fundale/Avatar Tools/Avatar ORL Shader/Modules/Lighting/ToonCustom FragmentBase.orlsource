@@ -493,7 +493,8 @@
             FinalColor.rgb = outlineColor;
         #endif
 
-        FinalColor.a = o.Alpha;
+        if (_RenderType > 1)
+            FinalColor.a = o.Alpha;
 
         // Premulty output by alpha for correct `Fade` mode
         #if defined(UNITY_PASS_FORWARDADD)
