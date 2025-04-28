@@ -3,6 +3,7 @@
     UI_Video_Header("# Video", Int) = 1
     [Toggle(_VIDEO)]_EnableVideo("Enable Video", Int) = 0
     [Toggle(_VIDEOAST)]_ApplyVideoTransform("Apply Video Transform %ShowIf(_EnableVideo)", Int) = 1
+    _Video_ST("Video ST %ShowIf(!_ApplyVideoTransform)", Vector) = (1.0, 1.0, 0.0, 0.0)
     [HDR]_VideoTint("Video Tint %ShowIf(_EnableVideo)", Color) = (1.0, 1.0, 1.0, 1.0)
     [Toggle(_VIDEOALBEDO)]_VideoAsAlbedo("Video As Albedo %ShowIf(_EnableVideo)", Int) = 0
     _VideoMask("Video Mask %ShowIf(_EnableVideo)", 2D) = "white" {}
@@ -60,6 +61,8 @@
     uniform fixed4 _VideoTint;
     uniform float4 _VideoMask_ST;
 
+    uniform float4 _Video_ST;
+
     #if !defined(_VIDEOMAP)
         uniform fixed _VideoRatio;
         uniform fixed _VideoRotation;
@@ -112,6 +115,8 @@
                 {
                     #if defined(_VIDEOAST)
                         videouv = TRANSFORM_TEX(videouv, _Udon_VideoTex);
+                    #else
+                        videouv = TRANSFORM_TEX(videouv, _Video);
                     #endif
                     video.rgb = _Udon_VideoTex.SampleLevel(bilinear_clamp, videouv, 0);
                 } else video.rgb = _VideoFallback.SampleLevel(bilinear_clamp, videouv, 0);
