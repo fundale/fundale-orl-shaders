@@ -25,6 +25,7 @@
 - Module Mask: The (RGB) Mask that controls where the Module renders.
 - Use Module Map: Whether to use the Map for where to sample from.
 - Module Map: For "flow" based Modules, with [R,G,B] being masks for Functions 1-3 and Alpha being the flow's progress from 1.0 (start) to 0.0 (end), 1.0 - Alpha.
+- Module Scale Effects: Whether to scale FX with the Mask's UV.
 - Module Rotation: The rotation of a Module when not in Map mode (-360deg through 360deg)
 - Module Warp: For "flow" based modules, warps the progrss forward or backwards using pow() to give a sluggish or snappier effect.
 - Module Bias: How much to force recolor the Module's output to match the user's desired Module Tint.
@@ -33,6 +34,7 @@
 - AudioLink History: How many AudioLink History units to use for flowing reactions.
 
 ## AudioLink Chroma
+- Idle Intensity: How bright to glow when AudioLink isn't available or forced idle.
 - Force Idle: Pretend like AudioLink doesn't exist and carry on. ;)
 - Chroma Mode \<R,G,B>: What Chroma mode to use for \<C> channel.
   - Mode 0 is off.
@@ -68,6 +70,7 @@
 
 ## Video
 - Apply Video Transform: Whether to adjust and clip the Global Video Texture according to what the world Author intends.
+- Video ScaleTransform: Manually specify a region of the Video to use.
 - Video As Albedo: Whether to render the Global Video Texture as lit (Albedo) rather than emissive (Emission).
 - Video Fallback: The fallback texture to display when no Global Video Texture is available.
 - Video UV Map: Uses [R,G] as the [X,Y] to use from the video, may require Blender / Substance baking.
@@ -84,3 +87,9 @@
 
 ## Toon FragmentBase
 - Monochrome Lighting: XSToon Monochrome Lighting has been tweaked to imitate Poiyomi Toon's Monochrome Lighting.
+
+
+## Thank You
+[Orels1](https://orels.sh/) for making a cool Shader Module system!
+Roimu for testing, suggestions, and feedback.
+[McArdellje](https://vrchat.com/home/user/usr_15c25e4d-255f-4d91-910e-d85169ff3676) for getting me started on Shaders.
