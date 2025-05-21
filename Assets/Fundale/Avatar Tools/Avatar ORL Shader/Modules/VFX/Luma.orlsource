@@ -48,10 +48,10 @@
 
 %ShaderFeatures()
 {
-    #pragma shader_feature _LUMA
-    #pragma shader_feature _LUMALEGACY
-    #pragma shader_feature _LUMAMAP
-    #pragma shader_feature _LUMASTFX
+    #pragma shader_feature_local_fragment _LUMA
+    #pragma shader_feature_local_fragment _LUMALEGACY
+    #pragma shader_feature_local_fragment _LUMAMAP
+    #pragma shader_feature_local_fragment _LUMASTFX
 }
 
 %Textures()
@@ -171,8 +171,6 @@
     void LumaFrag(MeshData d, inout SurfaceData o)
     {
         #if defined(_LUMA)
-
-            if (!_EnableLuma) return;
 
             #if defined(_AUDIOLINKCHROMA)
                 if (_ChromaForceIdle) return;

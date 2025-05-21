@@ -10,8 +10,8 @@
 
 %ShaderFeatures()
 {
-    #pragma shader_feature _CROWDWAVE
-    #pragma shader_feature _CROWDWAVERANGE
+    #pragma shader_feature_local_fragment _CROWDWAVE
+    #pragma shader_feature_local_fragment _CROWDWAVERANGE
 }
 
 %Textures()
@@ -105,7 +105,6 @@
     {
 
         #if defined(_CROWDWAVE)
-            if (!_EnableCrowdwave) return;
 
             half3 crowdwaveMask = _CrowdwaveMask.Sample(sampler_CrowdwaveMask, TRANSFORM_TEX(d.uv0, _CrowdwaveMask));
 

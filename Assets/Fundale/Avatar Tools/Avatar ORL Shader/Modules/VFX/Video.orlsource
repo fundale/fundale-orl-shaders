@@ -18,10 +18,10 @@
 
 %ShaderFeatures()
 {
-    #pragma shader_feature _VIDEO
-    #pragma shader_feature _VIDEOMAP
-    #pragma shader_feature _VIDEOAST
-    #pragma shader_feature _VIDEOALBEDO
+    #pragma shader_feature_local_fragment _VIDEO
+    #pragma shader_feature_local_fragment _VIDEOMAP
+    #pragma shader_feature_local_fragment _VIDEOAST
+    #pragma shader_feature_local_fragment _VIDEOALBEDO
 }
 
 %Textures()
@@ -91,7 +91,6 @@
     void VideoFrag(MeshData d, inout SurfaceData o) {
 
         #if defined(_VIDEO)
-            if (!_EnableVideo) return;
 
             float2 videouv = TRANSFORM_TEX(d.uv0, _VideoMask);
             fixed4 video = 0.0;

@@ -54,9 +54,9 @@
 
 %ShaderFeatures()
 {
-    #pragma shader_feature _AUDIOLINKCHROMA
-    #pragma shader_feature _CHROMAMAP
-    #pragma shader_feature _CHROMASTFX
+    #pragma shader_feature_local_fragment _AUDIOLINKCHROMA
+    #pragma shader_feature_local_fragment _CHROMAMAP
+    #pragma shader_feature_local_fragment _CHROMASTFX
 }
 
 %Textures()
@@ -244,8 +244,6 @@
     void ChromaFrag(MeshData d, inout SurfaceData o)
     {
         #if defined(_AUDIOLINKCHROMA)
-
-            if (!_EnableAudioLinkChroma) return;
 
             #if defined(_LUMA)
                 if (!_ChromaForceIdle)

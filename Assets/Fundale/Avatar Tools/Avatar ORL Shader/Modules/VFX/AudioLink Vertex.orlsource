@@ -10,7 +10,7 @@
 
 %ShaderFeatures()
 {
-    #pragma shader_feature _AUDIOLINKVERTEX
+    #pragma shader_feature_local_vertex _AUDIOLINKVERTEX
 }
 
 %Textures()
@@ -60,8 +60,6 @@
     void AudioLinkVertex(inout VertexData v)
     {
         #if defined(_AUDIOLINKVERTEX)
-
-            if (!_EnableAudioLinkVertex) return;
 
             half2 map = _AudioLinkVertexMap.SampleLevel(sampler_AudioLinkVertexMap, TRANSFORM_TEX(v.uv0.xy, _AudioLinkVertexMap), 0).rg;
             half value = AudioLinkIsAvailable() ? AudioLinkLerp(float2(map.g * _AudioLinkVertexHistory, _AudioLinkVertexBand)).r * _AudioLinkVertexIntensity : 0.0;
