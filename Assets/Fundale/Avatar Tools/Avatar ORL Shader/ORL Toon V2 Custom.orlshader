@@ -1,0 +1,47 @@
+%ShaderName("Fundale/Avatar/ORL Toon V2 Custom")
+%LightingModel("Modules/Lighting/ToonCustom_V2")
+%CustomEditor("ORL.ShaderInspector.InspectorGUI")
+
+%ShaderFeatures()
+{
+    #pragma shader_feature_local_fragment _NATIVE_A2C
+}
+
+%ShaderDefines()
+{
+    #define NEED_FRAGMENT_IN_SHADOW
+    #define NEED_ALBEDO_ALPHA
+}
+
+%ShaderTags()
+{
+    "RenderType" = "Opaque" "Queue" = "Geometry"
+}
+
+%Includes()
+{
+    "@/Modules/AudioLink",
+    "self",
+    "@/Modules/Toon/v2/Main",
+    "@/Modules/VRCLightVolumes",
+    "@/Modules/Toon/v2/Shading",
+    "@/Modules/Toon/v2/Occlusion",
+    "Modules/VFX/AudioLink Vertex",
+    "@/Modules/Toon/v2/Normals",
+    "Modules/Lighting/Outline V2",
+    "@/Modules/Toon/v2/Specular",
+    "@/Modules/Toon/v2/Matcaps",
+    "@/Modules/Toon/v2/Decals",
+    "@/Modules/Toon/v2/Reflections",
+    "@/Modules/Toon/AudioLink",
+    "@/Modules/Toon/v2/Emission",
+    "@/Modules/Toon/v2/RimLight",
+    "@/Modules/Toon/v2/RimShadow",
+    "Modules/VFX/AudioLink Chroma",
+    "Modules/VFX/Luma",
+    "Modules/VFX/Video",
+    "Modules/VFX/Crowdwave",
+    "Modules/VFX/LTCGI",
+    "Modules/Lighting/Toon Sheen",
+    "@/Modules/VRCFeatures"
+}
