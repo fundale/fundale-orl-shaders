@@ -160,7 +160,7 @@
         // Composite final color
         FinalColor.rgb *= diffuseContributions;
         FinalColor.rgb += specularContributions;
-        FinalColor.a = o.Alpha;
+        // FinalColor.a = o.Alpha;
 
         // Sometimes we want to operate on the final color directly but before the fog is applied
         {
