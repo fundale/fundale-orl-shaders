@@ -157,9 +157,9 @@
 
     bool ShouldReact() { return AudioLinkIsAvailable() && !_ChromaForceIdle; }
 
-    float ChronoTime(int band)
+    float ChronoTime(int mode, int band)
     {
-        if (ShouldReact()) return AudioLinkGetChronoTime(0, band);
+        if (ShouldReact()) return AudioLinkGetChronoTime(mode, band);
         return _Time.x;
     }
 
@@ -216,7 +216,7 @@
                 return lerp(ThemeColor(scaledTime), ThemeColor(scaledTime + 1), frac(scaledTime)) * value;
 
             case 4: // Solid Hue Chronotensity
-                return HSV2RGB(float3(frac(ChronoTime(band) * _ChromaSpeed), 1.0, value));
+                return HSV2RGB(float3(frac(ChronoTime(0, band) * _ChromaSpeed), 1.0, value));
 
             case 5: // Hue Value
                 return HSV2RGB(float3(ShouldReact() ? value : frac(_Time.x + .5 * _ChromaSpeed), 1.0, value));
@@ -228,7 +228,7 @@
                 return HSV2RGB(float3(frac(((_Time.y / 5.0) * _ChromaSpeed) - progress), 1.0, value * abs(sin((_Time.y * _ChromaSpeed) - (progress * 15.0)))));
 
             case 8: // Hue Chronotensity Gradient
-                return HSV2RGB(float3(frac((((ChronoTime(band) * _ChromaSpeed) + AudioLinkGetChronoTime(4, band)) * 0.33) - progress), 1.0, value));
+                return HSV2RGB(float3(frac((((ChronoTime(0, band) * _ChromaSpeed) + ChronoTime(4, band)) * 0.33) - progress), 1.0, value));
 
             case 9: // Waveform Hue
                 return HSV2RGB(float3(frac(dft), 1.0, value));
